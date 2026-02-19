@@ -11,20 +11,24 @@ function NativeTabLayout() {
   return (
     <NativeTabs>
       <NativeTabs.Trigger name="index">
-        <Icon sf={{ default: "bubble.left.and.bubble.right", selected: "bubble.left.and.bubble.right.fill" }} />
-        <Label>Chats</Label>
+        <Icon sf={{ default: "dashboard", selected: "dashboard.fill" }} />
+        <Label>Dashboard</Label>
       </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="pending">
-        <Icon sf={{ default: "clock", selected: "clock.fill" }} />
-        <Label>Pending</Label>
+      <NativeTabs.Trigger name="contacts">
+        <Icon sf={{ default: "person.2", selected: "person.2.fill" }} />
+        <Label>Contacts</Label>
       </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="delivered">
-        <Icon sf={{ default: "checkmark.circle", selected: "checkmark.circle.fill" }} />
-        <Label>Delivered</Label>
+      <NativeTabs.Trigger name="devices">
+        <Icon sf={{ default: "iphone", selected: "iphone.fill" }} />
+        <Label>Devices</Label>
       </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="profile">
-        <Icon sf={{ default: "person", selected: "person.fill" }} />
-        <Label>Profile</Label>
+      <NativeTabs.Trigger name="schedule">
+        <Icon sf={{ default: "calendar", selected: "calendar.fill" }} />
+        <Label>Schedule</Label>
+      </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="logs">
+        <Icon sf={{ default: "list.bullet", selected: "list.bullet.fill" }} />
+        <Label>Logs</Label>
       </NativeTabs.Trigger>
     </NativeTabs>
   );
@@ -74,39 +78,60 @@ function ClassicTabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: "Chats",
+          title: "Dashboard",
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="chatbubbles" size={size} color={color} />
+            <Ionicons name="grid" size={size} color={color} />
           ),
         }}
       />
       <Tabs.Screen
-        name="pending"
+        name="contacts"
         options={{
-          title: "Pending",
+          title: "Contacts",
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="time" size={size} color={color} />
+            <Ionicons name="people" size={size} color={color} />
           ),
         }}
       />
       <Tabs.Screen
-        name="delivered"
+        name="devices"
         options={{
-          title: "Delivered",
+          title: "Devices",
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="checkmark-circle" size={size} color={color} />
+            <Ionicons name="phone-portrait" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="schedule"
+        options={{
+          title: "Schedule",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="calendar" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="logs"
+        options={{
+          title: "Logs",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="list" size={size} color={color} />
           ),
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
+          href: null, // Hide profile for now if not needed, or keep it
           title: "Profile",
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="person" size={size} color={color} />
           ),
         }}
       />
+      <Tabs.Screen name="pending" options={{ href: null }} />
+      <Tabs.Screen name="delivered" options={{ href: null }} />
     </Tabs>
   );
 }
