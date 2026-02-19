@@ -1,66 +1,51 @@
-import React, { useCallback } from "react";
+import React from "react";
 import {
   View,
   Text,
-  FlatList,
-  Pressable,
   StyleSheet,
   ActivityIndicator,
   Platform,
+  ScrollView,
+  Pressable,
 } from "react-native";
-import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useQuery } from "@tanstack/react-query";
 import { Ionicons } from "@expo/vector-icons";
-import { useAuth } from "@/lib/auth-context";
-import { getApiUrl } from "@/lib/query-client";
 import Colors from "@/constants/colors";
-import { fetch } from "expo/fetch";
+import * as Linking from "expo-linking";
+import { getApiUrl } from "@/lib/query-client";
 
-interface UserItem {
-  id: string;
-  username: string;
-  email: string;
+interface Stats {
+  totalContacts: number;
+  totalSmsScheduled: number;
+  totalSent: number;
+  totalFailed: number;
+  totalPending: number;
 }
 
-export default function ChatsScreen() {
+export default function DashboardScreen() {
   const insets = useSafeAreaInsets();
-  const { user } = useAuth();
 
-  const { data: users, isLoading } = useQuery<UserItem[]>({
-    queryKey: ["/api/users"],
+  const { data: stats, isLoading, refetch } = useQuery<Stats>({
+    queryKey: ["/api/stats"],
     refetchInterval: 5000,
   });
 
-  const otherUsers = users?.filter((u) => u.id !== user?.id) ?? [];
+  const handleExport = () => {
+    const url = `${getApiUrl()}/api/stats/export`;
+    Linking.openURL(url);
+  };
 
-  const renderUser = useCallback(
-    ({ item }: { item: UserItem }) => (
-      <Pressable
-        onPress={() =>
-          router.push({
-            pathname: "/chat/[userId]",
-            params: { userId: item.id, name: item.username },
-          })
-        }
-        style={({ pressed }) => [
-          styles.userCard,
-          pressed && styles.userCardPressed,
-        ]}
-      >
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>
-            {item.username.charAt(0).toUpperCase()}
-          </Text>
-        </View>
-        <View style={styles.userInfo}>
-          <Text style={styles.userName}>{item.username}</Text>
-          <Text style={styles.userEmail}>{item.email}</Text>
-        </View>
-        <Ionicons name="chevron-forward" size={18} color={Colors.light.textSecondary} />
-      </Pressable>
-    ),
-    []
+  const StatCard = ({ title, value, icon, color }: { title: string, value: number, icon: any, color: string }) => (
+    <View style={styles.statCard}>
+      <View style={[styles.iconContainer, { backgroundColor: color + "20" }]}>
+        <Ionicons name={icon} size={24} color={color} />
+      </View>
+      <View>
+        <Text style={styles.statValue}>{value}</Text>
+        <Text style={styles.statTitle}>{title}</Text>
+      </View>
+    </View>
   );
 
   return (
@@ -71,33 +56,34 @@ export default function ChatsScreen() {
           { paddingTop: (Platform.OS === "web" ? 67 : insets.top) + 12 },
         ]}
       >
-        <Text style={styles.headerTitle}>Chats</Text>
-        <View style={styles.headerSubRow}>
-          <Ionicons name="time-outline" size={14} color={Colors.light.tint} />
-          <Text style={styles.headerSub}>Messages deliver after 5 min</Text>
-        </View>
+        <Text style={styles.headerTitle}>Dashboard</Text>
+        <Text style={styles.headerSub}>SMS Campaign Overview</Text>
       </View>
 
       {isLoading ? (
         <View style={styles.center}>
           <ActivityIndicator size="large" color={Colors.light.tint} />
         </View>
-      ) : otherUsers.length === 0 ? (
-        <View style={styles.center}>
-          <Ionicons name="people-outline" size={48} color={Colors.light.textSecondary} />
-          <Text style={styles.emptyTitle}>No Users Yet</Text>
-          <Text style={styles.emptyText}>
-            Other users will appear here once they register
-          </Text>
-        </View>
       ) : (
-        <FlatList
-          data={otherUsers}
-          keyExtractor={(item) => item.id}
-          renderItem={renderUser}
-          contentContainerStyle={[styles.list, { paddingBottom: insets.bottom + 90 }]}
-          showsVerticalScrollIndicator={false}
-        />
+        <ScrollView contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 100 }]}>
+          <View style={styles.statsGrid}>
+            <StatCard title="Total Contacts" value={stats?.totalContacts || 0} icon="people" color="#4F46E5" />
+            <StatCard title="Scheduled" value={stats?.totalSmsScheduled || 0} icon="calendar" color="#8B5CF6" />
+            <StatCard title="Sent" value={stats?.totalSent || 0} icon="checkmark-circle" color="#10B981" />
+            <StatCard title="Failed" value={stats?.totalFailed || 0} icon="alert-circle" color="#EF4444" />
+            <StatCard title="Pending" value={stats?.totalPending || 0} icon="time" color="#F59E0B" />
+          </View>
+
+          <Pressable style={styles.exportButton} onPress={handleExport}>
+            <Ionicons name="download-outline" size={20} color="#FFF" />
+            <Text style={styles.exportButtonText}>Export Report (CSV)</Text>
+          </Pressable>
+
+          <Pressable style={styles.refreshButton} onPress={() => refetch()}>
+            <Ionicons name="refresh-outline" size={20} color={Colors.light.tint} />
+            <Text style={styles.refreshButtonText}>Refresh Stats</Text>
+          </Pressable>
+        </ScrollView>
       )}
     </View>
   );
@@ -120,45 +106,28 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_700Bold",
     color: Colors.light.text,
   },
-  headerSubRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    marginTop: 4,
-  },
   headerSub: {
-    fontSize: 13,
-    fontFamily: "Inter_400Regular",
-    color: Colors.light.tint,
-  },
-  center: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    gap: 12,
-    paddingHorizontal: 40,
-  },
-  emptyTitle: {
-    fontSize: 18,
-    fontFamily: "Inter_600SemiBold",
-    color: Colors.light.text,
-  },
-  emptyText: {
     fontSize: 14,
     fontFamily: "Inter_400Regular",
     color: Colors.light.textSecondary,
-    textAlign: "center",
+    marginTop: 4,
   },
-  list: {
-    padding: 16,
-    gap: 8,
+  content: {
+    padding: 24,
   },
-  userCard: {
+  statsGrid: {
     flexDirection: "row",
-    alignItems: "center",
+    flexWrap: "wrap",
+    gap: 16,
+    marginBottom: 24,
+  },
+  statCard: {
+    width: "47%",
     backgroundColor: Colors.light.surface,
     borderRadius: 16,
-    padding: 14,
+    padding: 16,
+    flexDirection: "row",
+    alignItems: "center",
     gap: 12,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
@@ -166,35 +135,56 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 1,
   },
-  userCardPressed: {
-    opacity: 0.8,
-    transform: [{ scale: 0.98 }],
-  },
-  avatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: Colors.light.tint,
+  iconContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
     justifyContent: "center",
     alignItems: "center",
   },
-  avatarText: {
-    fontSize: 18,
+  statValue: {
+    fontSize: 20,
     fontFamily: "Inter_700Bold",
-    color: "#FFFFFF",
-  },
-  userInfo: {
-    flex: 1,
-  },
-  userName: {
-    fontSize: 16,
-    fontFamily: "Inter_600SemiBold",
     color: Colors.light.text,
   },
-  userEmail: {
-    fontSize: 13,
+  statTitle: {
+    fontSize: 12,
     fontFamily: "Inter_400Regular",
     color: Colors.light.textSecondary,
-    marginTop: 2,
+  },
+  exportButton: {
+    backgroundColor: Colors.light.tint,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 16,
+    borderRadius: 12,
+    gap: 8,
+    marginBottom: 12,
+  },
+  exportButtonText: {
+    color: "#FFF",
+    fontSize: 16,
+    fontFamily: "Inter_600SemiBold",
+  },
+  refreshButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 16,
+    borderRadius: 12,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: Colors.light.tint,
+  },
+  refreshButtonText: {
+    color: Colors.light.tint,
+    fontSize: 16,
+    fontFamily: "Inter_600SemiBold",
+  },
+  center: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
   },
 });
